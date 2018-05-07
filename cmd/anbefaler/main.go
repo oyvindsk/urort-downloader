@@ -43,8 +43,8 @@ func main() {
 	// Loop the songs and get the mp3's
 
 	// FIXME:
-	// folder structure
 	// read and set "Downloaded" for each song
+	// set more id3 tags like "genere"
 
 	for _, s := range songs {
 		mp3, err := fetchMP3(s.ID)
@@ -89,14 +89,6 @@ func getJSONrefreshDB(db *badger.DB) error {
 
 	return fetchAllJSON(handleSong)
 }
-
-// getAndStoreAllJSON will fetch all json and store it in the database
-// func getAndStoreAllJSON(db *badger.DB) error {
-// 	return fetchAllJSON(func(s urørt.Song) error {
-// 		_, err := addSong(db, s)
-// 		return err
-// 	})
-// }
 
 func saveMP3WithID3(mp3 io.ReadCloser, s urørt.Song) error {
 
