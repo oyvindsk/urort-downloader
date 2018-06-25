@@ -30,6 +30,28 @@ func openDB(dir string, readOnly bool) (*badger.DB, error) {
 
 //
 // DB Get and Set functions
+
+// unused, untested:
+// func songExists(db *badger.DB, songID int) (bool, error) {
+// 	k := []byte(fmt.Sprintf("song-%d", songID))
+// 	var exists bool
+// 	err := db.View(func(txn *badger.Txn) error {
+// 		// does it exists?
+// 		_, err := txn.Get(k)
+// 		if err == nil {
+// 			exists = true
+// 			return nil
+// 		} else if err != badger.ErrKeyNotFound {
+// 			return err
+// 		}
+// 		return nil
+// 	})
+// 	if err != nil {
+// 		return false, err
+// 	}
+// 	return exists, nil
+// }
+
 func addSong(db *badger.DB, s urørt.Song) (bool, error) {
 
 	k := []byte(fmt.Sprintf("song-%d", s.ID))
@@ -63,6 +85,44 @@ func addSong(db *badger.DB, s urørt.Song) (bool, error) {
 	}
 
 	return added, nil
+}
+
+func getSongDownloaded(db *badger.DB, songID int) (time.Time, error) {
+
+	k := []byte(fmt.Sprintf("song-%d", songID))
+
+	var downloaded time.Time
+
+	// Write to badger db
+	err := db.View(func(txn *badger.Txn) error {
+
+		// does it exists? It should!
+		i, err := txn.Get(k)
+		if err != nil {
+			return err
+		}
+
+		// get json bytes
+		j, err := i.Value()
+		if err != nil {
+			return err
+		}
+
+		// unmarshall json
+		s, err := urørt.SongFromJSON(j)
+		if err != nil {
+			return err
+		}
+
+		downloaded = s.Downloaded
+		return nil
+	})
+
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return downloaded, nil
 }
 
 func setSongDownloaded(db *badger.DB, songID int) error {
@@ -106,7 +166,7 @@ func setSongDownloaded(db *badger.DB, songID int) error {
 
 //
 // Filters etc
-func songsRecomendedThisYear(db *badger.DB) ([]urørt.Song, error) {
+func songsRecomended2018(db *badger.DB) ([]urørt.Song, error) {
 
 	var songs []urørt.Song
 

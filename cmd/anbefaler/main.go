@@ -6,7 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/bogem/id3v2"
 	"github.com/dgraph-io/badger"
@@ -33,7 +34,8 @@ func main() {
 	}
 
 	// Get songs recommended in 2018
-	songs, err := songsRecomendedThisYear(db)
+	// FIXME be a little smarter.. :P
+	songs, err := songsRecomended2018(db)
 	if err != nil {
 		log.Fatalln("songsRecomended: ", err)
 	}
@@ -43,10 +45,23 @@ func main() {
 	// Loop the songs and get the mp3's
 
 	// FIXME:
-	// read and set "Downloaded" for each song
 	// set more id3 tags like "genere"
 
 	for _, s := range songs {
+
+		// have we downloaded it already?
+		download, err := getSongDownloaded(db, s.ID)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Printf("Got downloaded for Song ID: %d (%s - %s): %s\n", s.ID, s.BandName, s.Title, download)
+
+		if !download.IsZero() {
+			log.Printf("Skipping download, song already downloaded: ID: %d (%s - %s): %s\n", s.ID, s.BandName, s.Title, download)
+			continue
+		}
+
 		mp3, err := fetchMP3(s.ID)
 		if err != nil {
 			log.Fatal(err)
@@ -56,6 +71,12 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		err = setSongDownloaded(db, s.ID)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	}
 
 }
@@ -101,8 +122,10 @@ func saveMP3WithID3(mp3 io.ReadCloser, s urørt.Song) error {
 		return err
 	}
 
-	// create the path
-	file, err := os.Create(path.Join(p, fmt.Sprintf("%s - %s.mp3", s.BandName, s.Title)))
+	// create the filename and path
+	// BANDNAME - TITLE .mp3                                                         / are (usually?) forbidden on Linux
+	filename := strings.Replace(fmt.Sprintf("%s - %s.mp3", s.BandName, s.Title), string(filepath.Separator), "-", -1)
+	file, err := os.Create(filepath.Join(p, filename))
 	if err != nil {
 		return err
 	}
