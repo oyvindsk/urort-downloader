@@ -12,3 +12,8 @@ I want to:
  - keep the mp3's I like
  - have software remember what I have already downloaded
 
+
+## How
+ - Fetch metadata from the Urort API
+ - Refresh the local database (badger, stored in files)
+ - Get and store any missing MP3s from the Urort servers

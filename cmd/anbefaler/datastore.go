@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/dgraph-io/badger"
-	"github.com/oyvindsk/urørt-downloader/pkg/urørt"
+	urørt "github.com/oyvindsk/urort-downloader/pkg/urort"
 )
 
 //
@@ -18,6 +19,7 @@ func openDB(dir string, readOnly bool) (*badger.DB, error) {
 	if readOnly {
 		opts.ReadOnly = true
 	}
+	opts.Truncate = true
 	opts.Dir = dir
 	opts.ValueDir = dir
 	db, err := badger.Open(opts)
@@ -30,27 +32,6 @@ func openDB(dir string, readOnly bool) (*badger.DB, error) {
 
 //
 // DB Get and Set functions
-
-// unused, untested:
-// func songExists(db *badger.DB, songID int) (bool, error) {
-// 	k := []byte(fmt.Sprintf("song-%d", songID))
-// 	var exists bool
-// 	err := db.View(func(txn *badger.Txn) error {
-// 		// does it exists?
-// 		_, err := txn.Get(k)
-// 		if err == nil {
-// 			exists = true
-// 			return nil
-// 		} else if err != badger.ErrKeyNotFound {
-// 			return err
-// 		}
-// 		return nil
-// 	})
-// 	if err != nil {
-// 		return false, err
-// 	}
-// 	return exists, nil
-// }
 
 func addSong(db *badger.DB, s urørt.Song) (bool, error) {
 
@@ -93,7 +74,7 @@ func getSongDownloaded(db *badger.DB, songID int) (time.Time, error) {
 
 	var downloaded time.Time
 
-	// Write to badger db
+	// Get from badger db
 	err := db.View(func(txn *badger.Txn) error {
 
 		// does it exists? It should!
@@ -205,4 +186,34 @@ func songsRecomended2018(db *badger.DB) ([]urørt.Song, error) {
 	}
 
 	return songs, nil
+}
+
+// Other
+func dumpAllSongs(db *badger.DB, out *os.File) error {
+
+	err := db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchSize = 10
+		it := txn.NewIterator(opts)
+		defer it.Close()
+		for it.Rewind(); it.Valid(); it.Next() {
+			item := it.Item()
+
+			v, err := item.Value()
+			if err != nil {
+				return err
+			}
+
+			_, err = out.Write(v)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+	return err
 }

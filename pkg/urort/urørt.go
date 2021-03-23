@@ -1,4 +1,4 @@
-package urørt
+package urort
 
 import (
 	"bytes"

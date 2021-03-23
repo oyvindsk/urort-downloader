@@ -12,11 +12,11 @@ import (
 	"github.com/bogem/id3v2"
 	"github.com/dgraph-io/badger"
 
-	"github.com/oyvindsk/urørt-downloader/pkg/urørt"
+	urørt "github.com/oyvindsk/urort-downloader/pkg/urort"
 )
 
-const mp3FolderF = "./musikk/%s"
-const dbdir = "./badger-db"
+const mp3FolderF = "./mp3s/%s"
+const dbdir = "./database"
 
 func main() {
 
@@ -26,6 +26,11 @@ func main() {
 		log.Fatalln("opening db: ", err)
 	}
 	defer db.Close()
+
+	// dumpAllSongs(db, os.Stdout)
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
 
 	// Refresh the database. Will start from scratch if neccessary
 	err = getJSONrefreshDB(db)
@@ -135,7 +140,7 @@ func saveMP3WithID3(mp3 io.ReadCloser, s urørt.Song) error {
 	tag := id3v2.NewEmptyTag()
 	tag.SetTitle(s.Title)
 	tag.SetArtist(s.BandName)
-	tag.SetYear(string(s.Released.Year())) // ?
+	tag.SetYear(fmt.Sprintf("%d", s.Released.Year()))
 
 	_, err = tag.WriteTo(file)
 	if err != nil {
